@@ -34,6 +34,7 @@
     - python ./batch_inference.py
     inputs:
     - name: model
+      default: https://valohaidemo.blob.core.windows.net/mnist/mnist.npz
     - name: images
       default:
       - https://valohaidemo.blob.core.windows.net/mnist/four-inverted.png
@@ -55,6 +56,9 @@
       - name: evaluate
         type: execution
         step: batch-inference
+        override:
+          inputs:
+            - name: model
     edges:
       - [preprocess.output.preprocessed_mnist.npz, train.input.dataset]
       - [train.output.model*, evaluate.input.model]
