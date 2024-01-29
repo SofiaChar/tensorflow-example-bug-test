@@ -1,0 +1,61 @@
+---
+- step:
+    name: preprocess-dataset
+    image: python:3.9
+    command:
+      - pip install numpy valohai-utils
+      - python ./preprocess_dataset.py
+    inputs:
+      - name: dataset
+        default: https://valohaidemo.blob.core.windows.net/mnist/mnist.npz
+
+- step:
+    name: train-model
+    image: tensorflow/tensorflow:2.6.0
+    command:
+      - pip install valohai-utils
+      - python ./train_model.py {parameters}
+    parameters:
+      - name: epochs
+        default: 5
+        type: integer
+      - name: learning_rate
+        default: 0.001
+        type: float
+    inputs:
+      - name: dataset
+        default: https://valohaidemo.blob.core.windows.net/mnist/preprocessed_mnist.npz
+
+- step:
+    name: batch-inference
+    image: tensorflow/tensorflow:2.6.0
+    command:
+    - pip install pillow valohai-utils
+    - python ./batch_inference.py
+    inputs:
+    - name: model
+    - name: images
+      default:
+      - https://valohaidemo.blob.core.windows.net/mnist/four-inverted.png
+      - https://valohaidemo.blob.core.windows.net/mnist/five-inverted.png
+      - https://valohaidemo.blob.core.windows.net/mnist/five-normal.jpg
+
+- pipeline:
+    name: training-pipeline
+    nodes:
+      - name: preprocess
+        type: execution
+        step: preprocess-dataset
+      - name: train
+        type: execution
+        step: train-model
+        override:
+          inputs:
+            - name: dataset
+      - name: evaluate
+        type: execution
+        step: batch-inference
+    edges:
+      - [preprocess.output.preprocessed_mnist.npz, train.input.dataset]
+      - [train.output.model*, evaluate.input.model]
+
